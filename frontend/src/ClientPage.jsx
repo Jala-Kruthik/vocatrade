@@ -30,14 +30,16 @@ function RequestModal({ worker, clientName, onClose }) {
 
   const handleSend = async () => {
     try {
-      await api.post('/users/request', {
+      await api.post('/requests', {
         providerId: worker._id,
         message: msg,
       });
-    } catch { /* no-op if endpoint not wired yet */ }
-    setSent(true);
-    toast.success(`Request sent to ${worker.name}!`);
-    setTimeout(onClose, 1500);
+      setSent(true);
+      toast.success(`Request sent to ${worker.name}!`);
+      setTimeout(onClose, 1500);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to send request');
+    }
   };
 
   return (
@@ -141,16 +143,93 @@ function ProviderCard({ worker, onRequest }) {
   );
 }
 
+// ── Feedback Modal ─────────────────────────────────────────────────────────────
+function FeedbackModal({ request, onSubmit, onClose }) {
+  const [rating, setRating] = useState(0);
+  const [hover, setHover] = useState(0);
+  const [comment, setComment] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!rating) { toast.error('Please select a star rating'); return; }
+    setSubmitting(true);
+    await onSubmit(request._id, rating, comment);
+    setSubmitting(false);
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300, padding: '1rem' }}>
+      <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, width: '100%', maxWidth: 460, padding: '2rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700 }}>⭐ Rate Your Experience</h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: C.muted, cursor: 'pointer', fontSize: 20 }}>✕</button>
+        </div>
+
+        <div style={{ background: '#162032', borderRadius: 10, padding: '12px 14px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 40, height: 40, borderRadius: '50%', background: `linear-gradient(135deg, ${C.accent}, #d97706)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 18, color: '#0f172a', flexShrink: 0 }}>
+            {request.provider?.name?.[0]}
+          </div>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 14 }}>{request.provider?.name}</div>
+            <div style={{ color: C.muted, fontSize: 12 }}>{request.provider?.tradeCategory} · 🏆 Certified</div>
+          </div>
+        </div>
+
+        <p style={{ color: C.muted, fontSize: 13, marginBottom: 16 }}>How was the service? Your feedback helps other clients make better decisions.</p>
+
+        {/* Star Rating */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 20 }}>
+          {[1, 2, 3, 4, 5].map((star) => (
+            <button key={star} type="button"
+              onClick={() => setRating(star)}
+              onMouseEnter={() => setHover(star)}
+              onMouseLeave={() => setHover(0)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 36, transition: 'transform 0.1s', transform: (hover || rating) >= star ? 'scale(1.1)' : 'scale(1)', filter: (hover || rating) >= star ? 'none' : 'grayscale(100%) opacity(0.4)' }}>
+              ⭐
+            </button>
+          ))}
+        </div>
+        {rating > 0 && (
+          <p style={{ textAlign: 'center', color: C.accent, fontSize: 13, fontWeight: 600, marginBottom: 14 }}>
+            {['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'][rating]} ({rating}/5)
+          </p>
+        )}
+
+        <label style={{ display: 'block', color: C.muted, fontSize: 12, fontWeight: 600, marginBottom: 6 }}>COMMENT (optional)</label>
+        <textarea
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          rows={3}
+          placeholder="Share your experience with this service provider…"
+          style={{ width: '100%', background: '#0f172a', border: `1px solid ${C.border}`, borderRadius: 8, padding: '10px 12px', color: C.text, fontSize: 14, resize: 'vertical', outline: 'none', lineHeight: 1.6, marginBottom: 16 }}
+        />
+
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={handleSubmit} disabled={!rating || submitting}
+            style={{ flex: 1, padding: 12, background: rating ? `linear-gradient(135deg, ${C.accent}, #d97706)` : C.border, color: rating ? '#0f172a' : C.muted, fontWeight: 700, border: 'none', borderRadius: 8, cursor: rating ? 'pointer' : 'not-allowed', fontSize: 14 }}>
+            {submitting ? 'Submitting…' : '⭐ Submit Feedback'}
+          </button>
+          <button onClick={onClose} style={{ padding: '12px 18px', background: '#162032', border: `1px solid ${C.border}`, borderRadius: 8, color: C.muted, cursor: 'pointer', fontSize: 14 }}>
+            Skip
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Page ──────────────────────────────────────────────────────────────────
 export default function ClientPage() {
   const { user, logout } = useAuth();
   const [workers, setWorkers] = useState([]);
+  const [myRequests, setMyRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  // Default filter to client's registered trade preference
   const [filterTrade, setFilterTrade] = useState(user?.tradeCategory || 'All');
   const [filterAvail, setFilterAvail] = useState(false);
   const [requestWorker, setRequestWorker] = useState(null);
+  const [tab, setTab] = useState('browse'); // 'browse' | 'requests'
+  const [feedbackModal, setFeedbackModal] = useState(null); // request object
 
   const fetchWorkers = useCallback(async () => {
     setLoading(true);
@@ -165,7 +244,26 @@ export default function ClientPage() {
     }
   }, [filterTrade]);
 
+  const fetchMyRequests = useCallback(async () => {
+    try {
+      const { data } = await api.get('/requests/sent');
+      setMyRequests(data);
+    } catch { /* no-op */ }
+  }, []);
+
   useEffect(() => { fetchWorkers(); }, [fetchWorkers]);
+  useEffect(() => { fetchMyRequests(); }, [fetchMyRequests]);
+
+  const handleFeedbackSubmit = async (reqId, rating, comment) => {
+    try {
+      await api.post(`/requests/${reqId}/feedback`, { rating, comment });
+      toast.success('Thank you for your feedback!');
+      setFeedbackModal(null);
+      fetchMyRequests();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to submit feedback');
+    }
+  };
 
   const filtered = workers.filter((w) => {
     const q = search.toLowerCase();
@@ -175,15 +273,29 @@ export default function ClientPage() {
     );
   });
 
+  const pendingOrAccepted = myRequests.filter(r => r.status === 'pending' || r.status === 'accepted').length;
+
   const S = {
     inp: { background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: '8px 12px', color: C.text, fontSize: 13, outline: 'none' },
     btn: (bg, fg = '#0f172a') => ({ padding: '8px 16px', background: bg, color: fg, border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }),
+    tabBtn: (active) => ({ padding: '8px 20px', background: active ? C.accent : 'none', color: active ? '#0f172a' : C.muted, border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: active ? 700 : 400, fontSize: 14 }),
+    statusColor: { pending: C.accent, accepted: C.green, declined: C.red, completed: C.blue },
+    statusLabel: { pending: '⏳ Pending', accepted: '✅ Accepted', declined: '❌ Declined', completed: '🔧 Completed' },
   };
 
   return (
     <div style={{ minHeight: '100vh', background: C.bg, color: C.text }}>
       <Toaster position="top-right" />
-      {requestWorker && <RequestModal worker={requestWorker} clientName={user?.name} onClose={() => setRequestWorker(null)} />}
+      {requestWorker && <RequestModal worker={requestWorker} clientName={user?.name} onClose={() => { setRequestWorker(null); fetchMyRequests(); }} />}
+
+      {/* Feedback Modal */}
+      {feedbackModal && (
+        <FeedbackModal
+          request={feedbackModal}
+          onSubmit={handleFeedbackSubmit}
+          onClose={() => setFeedbackModal(null)}
+        />
+      )}
 
       {/* Nav */}
       <header style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '0 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 60, flexWrap: 'wrap', gap: 8 }}>
@@ -200,71 +312,133 @@ export default function ClientPage() {
 
       <main style={{ maxWidth: 1200, margin: '0 auto', padding: '2rem 1.5rem' }}>
 
-        {/* Hero */}
-        <div style={{ background: 'linear-gradient(135deg, #1e293b, #0f2340)', border: `1px solid ${C.border}`, borderRadius: 16, padding: '1.75rem 2rem', marginBottom: '1.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
-          <div>
-            <h1 style={{ fontSize: 26, fontWeight: 800, marginBottom: 6 }}>🧑‍💼 Hire Certified Service Providers</h1>
-            <p style={{ color: C.muted, fontSize: 14 }}>
-              All providers listed here have passed the VocaTrade certification test.
-              {user?.tradeCategory && user.tradeCategory !== 'other' && (
-                <span style={{ color: C.accent }}> Showing results for <strong>{user.tradeCategory}</strong> based on your requirement.</span>
-              )}
-            </p>
-          </div>
-          <div style={{ display: 'flex', gap: 20 }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 26, fontWeight: 800, color: C.accent }}>{workers.length}</div>
-              <div style={{ color: C.muted, fontSize: 11 }}>Certified</div>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 26, fontWeight: 800, color: C.green }}>{workers.filter(w => w.available !== false).length}</div>
-              <div style={{ color: C.muted, fontSize: 11 }}>Available Now</div>
-            </div>
-          </div>
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: 4, marginBottom: '1.5rem', background: C.surface, borderRadius: 10, padding: 4, width: 'fit-content' }}>
+          <button style={S.tabBtn(tab === 'browse')} onClick={() => setTab('browse')}>🔍 Browse Providers</button>
+          <button style={{ ...S.tabBtn(tab === 'requests'), position: 'relative' }} onClick={() => setTab('requests')}>
+            📋 My Requests ({myRequests.length})
+            {pendingOrAccepted > 0 && (
+              <span style={{ position: 'absolute', top: -4, right: -4, background: C.red, color: '#fff', borderRadius: '50%', width: 16, height: 16, fontSize: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>{pendingOrAccepted}</span>
+            )}
+          </button>
         </div>
 
-        {/* Filters */}
-        <div style={{ display: 'flex', gap: 10, marginBottom: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          <input
-            style={{ ...S.inp, minWidth: 220 }}
-            placeholder="🔍 Search by name or trade…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <select
-            style={S.inp}
-            value={filterTrade}
-            onChange={(e) => setFilterTrade(e.target.value)}
-          >
-            {TRADES.map((t) => <option key={t}>{t}</option>)}
-          </select>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: C.muted, fontSize: 13, cursor: 'pointer' }}>
-            <input type="checkbox" checked={filterAvail} onChange={(e) => setFilterAvail(e.target.checked)} style={{ accentColor: C.green, width: 14, height: 14 }} />
-            Available only
-          </label>
-          <span style={{ color: C.muted, fontSize: 13, marginLeft: 'auto' }}>
-            {filtered.length} provider{filtered.length !== 1 ? 's' : ''} found
-          </span>
-        </div>
+        {tab === 'browse' ? (
+          <>
+            {/* Hero */}
+            <div style={{ background: 'linear-gradient(135deg, #1e293b, #0f2340)', border: `1px solid ${C.border}`, borderRadius: 16, padding: '1.75rem 2rem', marginBottom: '1.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+              <div>
+                <h1 style={{ fontSize: 26, fontWeight: 800, marginBottom: 6 }}>🧑‍💼 Hire Certified Service Providers</h1>
+                <p style={{ color: C.muted, fontSize: 14 }}>
+                  All providers listed here have passed the VocaTrade certification test.
+                  {user?.tradeCategory && user.tradeCategory !== 'other' && (
+                    <span style={{ color: C.accent }}> Showing results for <strong>{user.tradeCategory}</strong> based on your requirement.</span>
+                  )}
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: 20 }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 26, fontWeight: 800, color: C.accent }}>{workers.length}</div>
+                  <div style={{ color: C.muted, fontSize: 11 }}>Certified</div>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 26, fontWeight: 800, color: C.green }}>{workers.filter(w => w.available !== false).length}</div>
+                  <div style={{ color: C.muted, fontSize: 11 }}>Available Now</div>
+                </div>
+              </div>
+            </div>
 
-        {/* Content */}
-        {loading ? (
-          <p style={{ color: C.muted, textAlign: 'center', marginTop: 80 }}>Loading certified providers…</p>
-        ) : filtered.length === 0 ? (
-          <div style={{ textAlign: 'center', marginTop: 80 }}>
-            <p style={{ fontSize: 44, marginBottom: 12 }}>🔍</p>
-            <p style={{ color: C.muted, marginBottom: 12 }}>
-              No certified {filterTrade !== 'All' ? filterTrade : ''} providers available right now.
-            </p>
-            <button onClick={() => setFilterTrade('All')} style={S.btn(`linear-gradient(135deg, ${C.accent}, #d97706)`)}>
-              Show All Trades
-            </button>
-          </div>
+            {/* Filters */}
+            <div style={{ display: 'flex', gap: 10, marginBottom: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              <input style={{ ...S.inp, minWidth: 220 }} placeholder="🔍 Search by name or trade…" value={search} onChange={(e) => setSearch(e.target.value)} />
+              <select style={S.inp} value={filterTrade} onChange={(e) => setFilterTrade(e.target.value)}>
+                {TRADES.map((t) => <option key={t}>{t}</option>)}
+              </select>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: C.muted, fontSize: 13, cursor: 'pointer' }}>
+                <input type="checkbox" checked={filterAvail} onChange={(e) => setFilterAvail(e.target.checked)} style={{ accentColor: C.green, width: 14, height: 14 }} />
+                Available only
+              </label>
+              <span style={{ color: C.muted, fontSize: 13, marginLeft: 'auto' }}>{filtered.length} provider{filtered.length !== 1 ? 's' : ''} found</span>
+            </div>
+
+            {loading ? (
+              <p style={{ color: C.muted, textAlign: 'center', marginTop: 80 }}>Loading certified providers…</p>
+            ) : filtered.length === 0 ? (
+              <div style={{ textAlign: 'center', marginTop: 80 }}>
+                <p style={{ fontSize: 44, marginBottom: 12 }}>🔍</p>
+                <p style={{ color: C.muted, marginBottom: 12 }}>No certified {filterTrade !== 'All' ? filterTrade : ''} providers available right now.</p>
+                <button onClick={() => setFilterTrade('All')} style={S.btn(`linear-gradient(135deg, ${C.accent}, #d97706)`)}>Show All Trades</button>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+                {filtered.map((w) => <ProviderCard key={w._id} worker={w} onRequest={setRequestWorker} />)}
+              </div>
+            )}
+          </>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
-            {filtered.map((w) => (
-              <ProviderCard key={w._id} worker={w} onRequest={setRequestWorker} />
-            ))}
+          /* My Requests Tab */
+          <div>
+            <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: '1.25rem' }}>📋 My Service Requests</h2>
+            {myRequests.length === 0 ? (
+              <div style={{ textAlign: 'center', marginTop: 60 }}>
+                <p style={{ fontSize: 40, marginBottom: 12 }}>📭</p>
+                <p style={{ color: C.muted, marginBottom: 16 }}>No requests yet. Browse providers and send your first request.</p>
+                <button onClick={() => setTab('browse')} style={S.btn(`linear-gradient(135deg, ${C.accent}, #d97706)`)}>Browse Providers</button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {myRequests.map((r) => (
+                  <div key={r._id} style={{ background: C.surface, border: `1px solid ${r.status === 'accepted' ? C.green : r.status === 'declined' ? C.red : r.status === 'completed' ? C.blue : C.border}`, borderRadius: 14, padding: '1.25rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10, marginBottom: 10 }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 15 }}>{r.provider?.name || 'Provider'}</div>
+                        <div style={{ color: C.muted, fontSize: 12 }}>{r.provider?.tradeCategory} · 🏆 Certified</div>
+                      </div>
+                      <span style={{ background: (S.statusColor[r.status] || C.muted) + '22', color: S.statusColor[r.status] || C.muted, border: `1px solid ${(S.statusColor[r.status] || C.muted)}44`, borderRadius: 20, padding: '3px 12px', fontSize: 12, fontWeight: 700 }}>
+                        {S.statusLabel[r.status] || r.status}
+                      </span>
+                    </div>
+
+                    <p style={{ color: C.muted, fontSize: 13, marginBottom: 8 }}>"{r.message}"</p>
+
+                    <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>
+                      Sent {new Date(r.createdAt).toLocaleDateString()}
+                      {r.acceptedAt && <span> · Accepted {new Date(r.acceptedAt).toLocaleDateString()}</span>}
+                      {r.completedAt && <span> · Completed {new Date(r.completedAt).toLocaleDateString()}</span>}
+                    </div>
+
+                    {/* Contact info when accepted */}
+                    {r.status === 'accepted' && (
+                      <div style={{ background: '#0d2a0d', border: `1px solid ${C.green}44`, borderRadius: 8, padding: '10px 14px', marginBottom: 10 }}>
+                        <p style={{ color: C.green, fontWeight: 700, fontSize: 13, marginBottom: 6 }}>✅ Service Provider has accepted your request!</p>
+                        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+                          {r.provider?.email && <a href={`mailto:${r.provider.email}`} style={{ color: C.blue, fontSize: 12, textDecoration: 'none' }}>📧 {r.provider.email}</a>}
+                          {r.provider?.phone && <a href={`tel:${r.provider.phone}`} style={{ color: C.green, fontSize: 12, textDecoration: 'none' }}>📞 {r.provider.phone}</a>}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Feedback prompt when completed */}
+                    {r.status === 'completed' && !r.feedback?.rating && (
+                      <button onClick={() => setFeedbackModal(r)}
+                        style={{ padding: '9px 18px', background: `linear-gradient(135deg, ${C.blue}, #2563eb)`, color: '#fff', fontWeight: 700, border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13 }}>
+                        ⭐ Leave Feedback for {r.provider?.name}
+                      </button>
+                    )}
+
+                    {/* Feedback submitted */}
+                    {r.feedback?.rating && (
+                      <div style={{ background: '#0d1a2a', border: `1px solid ${C.blue}44`, borderRadius: 8, padding: '10px 14px' }}>
+                        <div style={{ color: C.blue, fontWeight: 600, fontSize: 13, marginBottom: 4 }}>
+                          ⭐ Your feedback: {'⭐'.repeat(r.feedback.rating)} ({r.feedback.rating}/5)
+                        </div>
+                        {r.feedback.comment && <p style={{ color: C.muted, fontSize: 12 }}>{r.feedback.comment}</p>}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </main>

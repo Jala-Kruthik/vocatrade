@@ -513,6 +513,11 @@ export default function DashboardPage() {
                           </button>
                         </div>
                       )}
+                      {request.status === 'accepted' && (
+                        <button onClick={() => handleRequestAction(request._id, 'completed')} style={{ height: 34, padding: '0 13px', borderRadius: 8, border: 'none', background: C.blue, color: '#fff', fontWeight: 800, cursor: 'pointer', fontSize: 12 }}>
+                          🔧 Mark as Completed
+                        </button>
+                      )}
                     </div>
                   );
                 })}

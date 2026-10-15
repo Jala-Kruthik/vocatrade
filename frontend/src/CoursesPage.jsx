@@ -10,7 +10,7 @@ const C = {
   accent: '#f59e0b', green: '#22c55e', red: '#ef4444', blue: '#3b82f6', purple: '#a855f7',
 };
 
-const PASS_SCORE = 70;
+const PASS_SCORE = 100; // Must get ALL questions correct
 
 // ── Single universal course ────────────────────────────────────────────────────
 const COURSE = {
@@ -230,11 +230,28 @@ function Quiz({ onPass, onFail, onBack }) {
           Submit Test →
         </button>
       ) : (
-        <div style={{ background: score >= PASS_SCORE ? '#0d1f0d' : '#1f0d0d', border: `1px solid ${score >= PASS_SCORE ? C.green : C.red}`, borderRadius: 12, padding: '1.5rem', textAlign: 'center' }}>
-          <div style={{ fontSize: 36, fontWeight: 800, color: score >= PASS_SCORE ? C.green : C.red, marginBottom: 6 }}>{score}%</div>
-          <p style={{ color: score >= PASS_SCORE ? C.green : C.red, fontWeight: 600, fontSize: 15 }}>
-            {score >= PASS_SCORE ? '🎉 Passed! Your certificate is ready.' : `❌ Score too low — need ${PASS_SCORE}%. Review the lessons and try again.`}
-          </p>
+        <div style={{ background: score === 100 ? '#0d1f0d' : '#1f0d0d', border: `1px solid ${score === 100 ? C.green : C.red}`, borderRadius: 12, padding: '1.5rem', textAlign: 'center' }}>
+          <div style={{ fontSize: 36, fontWeight: 800, color: score === 100 ? C.green : C.red, marginBottom: 8 }}>{score}%</div>
+          {score === 100 ? (
+            <p style={{ color: C.green, fontWeight: 700, fontSize: 15 }}>🎉 Perfect Score! All questions correct. Your certificate is ready.</p>
+          ) : (
+            <>
+              <p style={{ color: C.red, fontWeight: 700, fontSize: 15, marginBottom: 8 }}>
+                ❌ {COURSE.quiz.length - Math.round(score / 100 * COURSE.quiz.length)} question{COURSE.quiz.length - Math.round(score / 100 * COURSE.quiz.length) !== 1 ? 's' : ''} wrong — you must answer ALL questions correctly to earn the certificate.
+              </p>
+              <p style={{ color: C.muted, fontSize: 13, marginBottom: 16 }}>Review the highlighted answers above, go back to the lessons, and try again.</p>
+              <button
+                onClick={() => {
+                  setAnswers({});
+                  setSubmitted(false);
+                  setScore(0);
+                  onFail(score);
+                }}
+                style={{ padding: '10px 28px', background: `linear-gradient(135deg, ${C.accent}, #d97706)`, color: '#0f172a', fontWeight: 700, border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}>
+                🔄 Try Again
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>

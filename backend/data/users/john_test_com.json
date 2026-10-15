@@ -1,0 +1,10 @@
+{
+  "name": "John Smith",
+  "email": "john@test.com",
+  "phone": "+91 98765 43210",
+  "role": "provider",
+  "tradeCategory": "Plumbing",
+  "location": "",
+  "isCertified": false,
+  "registeredAt": "2026-06-06T06:07:17.299Z"
+}

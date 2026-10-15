@@ -1,0 +1,162 @@
+[
+  {
+    "name": "TestUser",
+    "email": "test@test.com",
+    "phone": "",
+    "role": "provider",
+    "tradeCategory": "Plumbing",
+    "location": "",
+    "isCertified": false,
+    "registeredAt": "2026-06-06T05:37:05.322Z"
+  },
+  {
+    "name": "Kruthik",
+    "email": "kruthik@gmail.com",
+    "phone": "8341712810",
+    "role": "provider",
+    "tradeCategory": "Electrical",
+    "location": "",
+    "isCertified": true,
+    "registeredAt": "2026-06-06T05:51:48.708Z"
+  },
+  {
+    "name": "Bunny",
+    "email": "bunny@gmail.com",
+    "phone": "83241712810",
+    "role": "client",
+    "tradeCategory": "Electrical",
+    "location": "Hyderabad",
+    "isCertified": false,
+    "registeredAt": "2026-06-06T05:53:48.071Z"
+  },
+  {
+    "name": "John Smith",
+    "email": "john@test.com",
+    "phone": "+91 98765 43210",
+    "role": "provider",
+    "tradeCategory": "Plumbing",
+    "location": "",
+    "isCertified": false,
+    "registeredAt": "2026-06-06T06:07:17.299Z"
+  },
+  {
+    "name": "Vijay",
+    "email": "vijay@gmail.com",
+    "phone": "7654321098",
+    "role": "provider",
+    "tradeCategory": "Plumbing",
+    "location": "",
+    "isCertified": false,
+    "registeredAt": "2026-06-06T06:27:41.836Z"
+  },
+  {
+    "name": "anbu",
+    "email": "anbu@gmail0.com",
+    "phone": "5678901234",
+    "role": "provider",
+    "tradeCategory": "Pipefitting",
+    "location": "",
+    "isCertified": false,
+    "registeredAt": "2026-06-06T06:55:03.956Z"
+  },
+  {
+    "name": "guru",
+    "email": "guru@gmail.com",
+    "phone": "88888899999",
+    "role": "provider",
+    "tradeCategory": "Welding",
+    "location": "",
+    "isCertified": true,
+    "registeredAt": "2026-06-06T06:58:37.440Z"
+  },
+  {
+    "name": "Ravi Kumar",
+    "email": "ravi@test.com",
+    "phone": "+91 90123 45678",
+    "role": "provider",
+    "tradeCategory": "Plumbing",
+    "location": "",
+    "isCertified": false,
+    "registeredAt": "2026-06-06T08:32:01.951Z"
+  },
+  {
+    "name": "llll",
+    "email": "llll@gmail.com",
+    "phone": "7777777777",
+    "role": "provider",
+    "tradeCategory": "Electrical",
+    "location": "",
+    "isCertified": false,
+    "registeredAt": "2026-06-06T08:35:56.302Z"
+  },
+  {
+    "name": "APITest",
+    "email": "apitest_1780735130@test.com",
+    "phone": "+91 99999 00001",
+    "role": "provider",
+    "tradeCategory": "Plumbing",
+    "location": "",
+    "isCertified": false,
+    "registeredAt": "2026-06-06T08:38:50.939Z"
+  },
+  {
+    "name": "ClientTest",
+    "email": "clienttest_1780735165@test.com",
+    "phone": "+91 88888 00001",
+    "role": "client",
+    "tradeCategory": "Plumbing",
+    "location": "Chennai",
+    "isCertified": false,
+    "registeredAt": "2026-06-06T08:39:25.185Z"
+  },
+  {
+    "name": "Q",
+    "email": "q_1780735189@q.com",
+    "phone": "",
+    "role": "client",
+    "tradeCategory": "other",
+    "location": "",
+    "isCertified": false,
+    "registeredAt": "2026-06-06T08:39:49.133Z"
+  },
+  {
+    "name": "jjjj",
+    "email": "jjjj@gmail.com",
+    "phone": "7777777777",
+    "role": "provider",
+    "tradeCategory": "Ironwork",
+    "location": "",
+    "isCertified": false,
+    "registeredAt": "2026-06-06T08:43:52.353Z"
+  },
+  {
+    "name": "aaaa",
+    "email": "aaaa@gmail.com",
+    "phone": "6677667766",
+    "role": "provider",
+    "tradeCategory": "Welding",
+    "location": "",
+    "isCertified": false,
+    "registeredAt": "2026-06-06T08:46:44.088Z"
+  },
+  {
+    "name": "jjjjj",
+    "email": "alion@gmail.com",
+    "phone": "9999234567",
+    "role": "provider",
+    "tradeCategory": "Electrical",
+    "location": "",
+    "isCertified": false,
+    "registeredAt": "2026-10-13T09:01:23.106Z"
+  },
+  {
+    "name": "alion",
+    "email": "alio@gmail.com",
+    "phone": "4484837333",
+    "role": "client",
+    "tradeCategory": "Ironwork",
+    "location": "HYD",
+    "isCertified": false,
+    "registeredAt": "2026-10-13T09:04:16.932Z"
+  }
+]

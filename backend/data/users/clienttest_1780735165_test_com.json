@@ -1,0 +1,10 @@
+{
+  "name": "ClientTest",
+  "email": "clienttest_1780735165@test.com",
+  "phone": "+91 88888 00001",
+  "role": "client",
+  "tradeCategory": "Plumbing",
+  "location": "Chennai",
+  "isCertified": false,
+  "registeredAt": "2026-06-06T08:39:25.185Z"
+}
